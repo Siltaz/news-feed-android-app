@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "960851170634",
+    "project_id": "news-fresh-d59c6",
+    "storage_bucket": "news-fresh-d59c6.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:960851170634:android:2f21133a3fc1e687129db3",
+        "android_client_info": {
+          "package_name": "com.siltaz.newsfeed"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "960851170634-7kleg6p9kblnpsh55da2ers61qbeu61a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB60KO-RD_Qpr17khGtrYRNW6rjDHJOXpU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "960851170634-7kleg6p9kblnpsh55da2ers61qbeu61a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

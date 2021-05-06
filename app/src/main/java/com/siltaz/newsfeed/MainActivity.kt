@@ -4,12 +4,14 @@ import android.content.Intent
 import android.location.Address
 import android.location.Geocoder
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
+import com.birjuvachhani.locus.Locus
+import com.google.android.gms.ads.MobileAds
+import com.onesignal.OneSignal
 import com.siltaz.newsfeed.databinding.ActivityMainBinding
 import java.util.*
 import kotlin.collections.ArrayList
@@ -17,9 +19,10 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), NewsItemClicked {
 
+    private val ONESIGNAL_APP_ID = "709d3073-ef46-4e70-a600-6db69ace8c0d"
     private lateinit var binding: ActivityMainBinding
     private lateinit var mAdapter: NewsFeedAdapter
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val TAG = "MainActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,16 +30,40 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         val view = binding.root
         setContentView(view)
 
-        // Fetching user location
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        // Firebase Config Init
+        RemoteConfigUtil.init()
 
-        val country = getCountryCodeFromLocation(20.7504968, 73.7287397)
-        fetchData(country)
+        // AdMob Init
+        var adsEnabled = RemoteConfigUtil.getAdsEnabled()
+        if (adsEnabled) {
+            Log.d(TAG, "AdMob Enabled !")
+            MobileAds.initialize(this) {}
+        }
 
-        mAdapter = NewsFeedAdapter(this)
-        binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = mAdapter
-        binding.countryFlag.setImageResource(if (country == "us") R.drawable.usa else R.drawable.india)
+        // Enable verbose OneSignal logging to debug issues if needed.
+        OneSignal.setLogLevel(OneSignal.LOG_LEVEL.VERBOSE, OneSignal.LOG_LEVEL.NONE);
+
+        // OneSignal Initialization
+        OneSignal.initWithContext(this);
+        OneSignal.setAppId(ONESIGNAL_APP_ID);
+
+        // Fetch user location and then load news feeds accordingly
+        Locus.getCurrentLocation(this) { result ->
+            var country = "in"
+            result.location?.let {
+                country = getCountryCodeFromLocation(it.latitude, it.longitude)
+                Log.d(TAG, "Country: $country")
+            }
+            result.error?.let {
+                Log.d(TAG, "Location Fetch Failed !! Country set to IN")
+            }
+
+            fetchData(country)
+            mAdapter = NewsFeedAdapter(this)
+            binding.recyclerView.layoutManager = LinearLayoutManager(this)
+            binding.recyclerView.adapter = mAdapter
+            binding.countryFlag.setImageResource(if (country == "us") R.drawable.usa else R.drawable.india)
+        }
     }
 
     // Detects country code using latitude and longitude and return 2 letter country code
