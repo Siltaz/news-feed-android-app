@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         RemoteConfigUtil.init()
 
         // AdMob Init
-        var adsEnabled = RemoteConfigUtil.getAdsEnabled()
+        val adsEnabled = RemoteConfigUtil.getAdsEnabled()
         if (adsEnabled) {
             Log.d(TAG, "AdMob Enabled !")
             MobileAds.initialize(this) {}
@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
                 Log.d(TAG, "Location Fetch Failed !! Country set to IN")
             }
 
-            fetchData(country)
+            fetchData(country, adsEnabled)
             mAdapter = NewsFeedAdapter(this, this)
             binding.recyclerView.layoutManager = LinearLayoutManager(this)
             binding.recyclerView.adapter = mAdapter
@@ -84,7 +84,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         try {
             val geoCoder = Geocoder(this, Locale.getDefault())
             val addresses: List<Address> = geoCoder.getFromLocation(latitude, longitude, 1)
-            country = addresses[0].countryCode.toLowerCase()
+            country = addresses[0].countryCode.toLowerCase(Locale.ROOT)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
     }
 
     // Fetches news feeds
-    private fun fetchData(country: String) {
+    private fun fetchData(country: String, adsEnabled: Boolean) {
 
         // Original NewsAPI link only works for localhost only so used same API but hosted on someone else's server
         val url = "https://saurav.tech/NewsAPI/top-headlines/category/general/$country.json"
@@ -103,12 +103,16 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
             {
                 val newsJsonArray = it.getJSONArray("articles")
                 val newsArray = ArrayList<News>()
-                var news = News("", "", "", "", "", "")
                 for (i in 0 until newsJsonArray.length()) {
-                    if (i % 4 == 0 && i != 0) newsArray.add(news)
+                    if (adsEnabled) {
+                        if (i % 4 == 0 && i != 0) {
+                            val news = News("", "", "", "", "", "")
+                            newsArray.add(news)
+                        }
+                    }
 
                     val newsJsonObject = newsJsonArray.getJSONObject(i)
-                    news = News(
+                    val news = News(
                         newsJsonObject.getJSONObject("source").getString("name"),
                         newsJsonObject.getString("title"),
                         newsJsonObject.getString("description"),
@@ -129,10 +133,10 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
     }
 
     override fun onItemClicked(item: News) {
-//        if(!item.url.isNullOrEmpty()) {
+        if (item.url.isNotEmpty()) {
             val intent = Intent(this, WebviewActivity::class.java)
             intent.putExtra(WebviewActivity.URL_EXTRA, item.url)
             startActivity(intent)
-
+        }
     }
 }

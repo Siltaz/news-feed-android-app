@@ -20,10 +20,9 @@ class NewsFeedAdapter(private val listener: NewsItemClicked, private val mCtx: C
     private val items: ArrayList<News> = ArrayList()
     private val itemNews = 1
     private val itemAd = 2
-    private val TAG = "NewsFeedAdapter"
 
     override fun getItemViewType(position: Int): Int {
-        return if (position % 4 == 0 && position != 0) itemAd else itemNews
+        return if (items[position].title.isEmpty()) itemAd else itemNews
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -58,6 +57,7 @@ class NewsFeedAdapter(private val listener: NewsItemClicked, private val mCtx: C
                     .build()
 
                 adLoader.loadAd(AdRequest.Builder().build())
+
             }
             is NewsViewHolder -> {
                 val currentItem = items[position]
