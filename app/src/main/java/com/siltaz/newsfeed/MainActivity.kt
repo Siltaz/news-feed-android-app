@@ -47,6 +47,16 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         OneSignal.initWithContext(this);
         OneSignal.setAppId(ONESIGNAL_APP_ID);
 
+        // Opens WebView for feed received in notification
+        OneSignal.setNotificationOpenedHandler { result ->
+            val data = result.notification.additionalData
+            if (data.has("NEWS_URL")) {
+                val intent = Intent(this, WebviewActivity::class.java)
+                intent.putExtra(WebviewActivity.URL_EXTRA, data.getString("NEWS_URL"))
+                startActivity(intent)
+            }
+        }
+
         // Fetch user location and then load news feeds accordingly
         Locus.getCurrentLocation(this) { result ->
             var country = "in"
