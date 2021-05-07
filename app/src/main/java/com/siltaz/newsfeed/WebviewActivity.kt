@@ -1,5 +1,6 @@
 package com.siltaz.newsfeed
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.webkit.WebViewClient
@@ -14,6 +15,7 @@ class WebviewActivity : AppCompatActivity() {
         const val URL_EXTRA = "feed_url"
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityWebviewBinding.inflate(layoutInflater)
@@ -23,6 +25,7 @@ class WebviewActivity : AppCompatActivity() {
         val url = intent.getStringExtra(URL_EXTRA)
 
         binding.webView.webViewClient = WebViewClient()
+        binding.webView.settings.javaScriptEnabled = true
         binding.webView.apply {
             if (url != null) {
                 loadUrl(url)

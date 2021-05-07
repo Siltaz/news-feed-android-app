@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         if (adsEnabled) {
             Log.d(TAG, "AdMob Enabled !")
             MobileAds.initialize(this) {}
+
         }
 
         // Enable verbose OneSignal logging to debug issues if needed.
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         // Opens WebView for feed received in notification
         OneSignal.setNotificationOpenedHandler { result ->
             val data = result.notification.additionalData
-            if (data.has("NEWS_URL")) {
+            if (!data.isNull("NEWS_URL")) {
                 val intent = Intent(this, WebviewActivity::class.java)
                 intent.putExtra(WebviewActivity.URL_EXTRA, data.getString("NEWS_URL"))
                 startActivity(intent)
@@ -69,7 +70,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
             }
 
             fetchData(country)
-            mAdapter = NewsFeedAdapter(this)
+            mAdapter = NewsFeedAdapter(this, this)
             binding.recyclerView.layoutManager = LinearLayoutManager(this)
             binding.recyclerView.adapter = mAdapter
             binding.countryFlag.setImageResource(if (country == "us") R.drawable.usa else R.drawable.india)
@@ -102,9 +103,12 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
             {
                 val newsJsonArray = it.getJSONArray("articles")
                 val newsArray = ArrayList<News>()
+                var news = News("", "", "", "", "", "")
                 for (i in 0 until newsJsonArray.length()) {
+                    if (i % 4 == 0 && i != 0) newsArray.add(news)
+
                     val newsJsonObject = newsJsonArray.getJSONObject(i)
-                    val news = News(
+                    news = News(
                         newsJsonObject.getJSONObject("source").getString("name"),
                         newsJsonObject.getString("title"),
                         newsJsonObject.getString("description"),
@@ -125,8 +129,10 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
     }
 
     override fun onItemClicked(item: News) {
-        val intent = Intent(this, WebviewActivity::class.java)
-        intent.putExtra(WebviewActivity.URL_EXTRA, item.url)
-        startActivity(intent)
+//        if(!item.url.isNullOrEmpty()) {
+            val intent = Intent(this, WebviewActivity::class.java)
+            intent.putExtra(WebviewActivity.URL_EXTRA, item.url)
+            startActivity(intent)
+
     }
 }
