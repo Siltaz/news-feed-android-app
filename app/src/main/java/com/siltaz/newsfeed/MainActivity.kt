@@ -11,6 +11,11 @@ import com.android.volley.Request
 import com.android.volley.toolbox.JsonObjectRequest
 import com.birjuvachhani.locus.Locus
 import com.google.android.gms.ads.MobileAds
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.ktx.get
+import com.google.firebase.remoteconfig.ktx.remoteConfig
+import com.google.firebase.remoteconfig.ktx.remoteConfigSettings
 import com.onesignal.OneSignal
 import com.siltaz.newsfeed.databinding.ActivityMainBinding
 import java.util.*
@@ -19,10 +24,19 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), NewsItemClicked {
 
-    private val ONESIGNAL_APP_ID = "709d3073-ef46-4e70-a600-6db69ace8c0d"
+    private lateinit var remoteConfig: FirebaseRemoteConfig
     private lateinit var binding: ActivityMainBinding
     private lateinit var mAdapter: NewsFeedAdapter
-    private val TAG = "MainActivity"
+    private var isAdsEnabled = false
+
+    private val DEFAULTS: Map<String, Any> = mapOf(
+        ADS_ENABLED to false
+    )
+
+    companion object {
+        private const val TAG = "NF::MainActivity"
+        private const val ADS_ENABLED = "ads_enabled"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,19 +44,45 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         val view = binding.root
         setContentView(view)
 
-        // Firebase Config Init
-        RemoteConfigUtil.init()
+        // Firebase RemoteConfig
+        remoteConfig = Firebase.remoteConfig
+        remoteConfig.setConfigSettingsAsync(remoteConfigSettings {
+            minimumFetchIntervalInSeconds = 0
+        })
+        remoteConfig.setDefaultsAsync(DEFAULTS)
+        remoteConfig.fetchAndActivate()
+            .addOnCompleteListener(this) {
+                isAdsEnabled = remoteConfig[ADS_ENABLED].asBoolean()
+                if (isAdsEnabled) MobileAds.initialize(this) {}
+                Log.d(TAG, "AdMob Enabled. $isAdsEnabled")
 
-        // AdMob Init
-        val adsEnabled = RemoteConfigUtil.getAdsEnabled()
-        if (adsEnabled) {
-            Log.d(TAG, "AdMob Enabled !")
-            MobileAds.initialize(this) {}
+                initOneSignal()
+                fetchNewsFeeds()
+            }
 
+    }
+
+    private fun fetchNewsFeeds() {
+
+        // Fetching User Location
+        Locus.getCurrentLocation(this) { result ->
+            var country = "in"
+            result.location?.let { country = getCountryCodeFromLocation(it.latitude, it.longitude) }
+            result.error?.let { Log.d(TAG, "Location Fetch Failed !! Country set to IN") }
+
+            createFeedsLists(country)
+            mAdapter = NewsFeedAdapter(this, this)
+            binding.recyclerView.layoutManager = LinearLayoutManager(this)
+            binding.recyclerView.adapter = mAdapter
+            binding.countryFlag.setImageResource(if (country == "us") R.drawable.usa else R.drawable.india)
         }
+    }
+
+    private fun initOneSignal() {
+        val ONESIGNAL_APP_ID = "709d3073-ef46-4e70-a600-6db69ace8c0d"
 
         // Enable verbose OneSignal logging to debug issues if needed.
-        OneSignal.setLogLevel(OneSignal.LOG_LEVEL.VERBOSE, OneSignal.LOG_LEVEL.NONE);
+        OneSignal.setLogLevel(OneSignal.LOG_LEVEL.ERROR, OneSignal.LOG_LEVEL.NONE);
 
         // OneSignal Initialization
         OneSignal.initWithContext(this);
@@ -56,24 +96,6 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
                 intent.putExtra(WebviewActivity.URL_EXTRA, data.getString("NEWS_URL"))
                 startActivity(intent)
             }
-        }
-
-        // Fetch user location and then load news feeds accordingly
-        Locus.getCurrentLocation(this) { result ->
-            var country = "in"
-            result.location?.let {
-                country = getCountryCodeFromLocation(it.latitude, it.longitude)
-                Log.d(TAG, "Country: $country")
-            }
-            result.error?.let {
-                Log.d(TAG, "Location Fetch Failed !! Country set to IN")
-            }
-
-            fetchData(country, adsEnabled)
-            mAdapter = NewsFeedAdapter(this, this)
-            binding.recyclerView.layoutManager = LinearLayoutManager(this)
-            binding.recyclerView.adapter = mAdapter
-            binding.countryFlag.setImageResource(if (country == "us") R.drawable.usa else R.drawable.india)
         }
     }
 
@@ -93,7 +115,7 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
     }
 
     // Fetches news feeds
-    private fun fetchData(country: String, adsEnabled: Boolean) {
+    private fun createFeedsLists(country: String) {
 
         // Original NewsAPI link only works for localhost only so used same API but hosted on someone else's server
         val url = "https://saurav.tech/NewsAPI/top-headlines/category/general/$country.json"
@@ -104,8 +126,8 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
                 val newsJsonArray = it.getJSONArray("articles")
                 val newsArray = ArrayList<News>()
                 for (i in 0 until newsJsonArray.length()) {
-                    if (adsEnabled) {
-                        if (i % 4 == 0 && i != 0) {
+                    if (isAdsEnabled) {
+                        if (i % 5 == 0 && i != 0) {
                             val news = News("", "", "", "", "", "")
                             newsArray.add(news)
                         }
