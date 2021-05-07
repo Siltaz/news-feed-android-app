@@ -4,6 +4,7 @@ import android.content.Intent
 import android.location.Address
 import android.location.Geocoder
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -44,6 +45,14 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
         val view = binding.root
         setContentView(view)
 
+        binding.swipeRefresh.setOnRefreshListener {
+            initFirebaseRemoteConfig()
+            if (binding.swipeRefresh.isRefreshing) binding.swipeRefresh.isRefreshing = false
+        }
+        initFirebaseRemoteConfig()
+    }
+
+    private fun initFirebaseRemoteConfig() {
         // Firebase RemoteConfig
         remoteConfig = Firebase.remoteConfig
         remoteConfig.setConfigSettingsAsync(remoteConfigSettings {
@@ -59,7 +68,6 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
                 initOneSignal()
                 fetchNewsFeeds()
             }
-
     }
 
     private fun fetchNewsFeeds() {
@@ -71,6 +79,8 @@ class MainActivity : AppCompatActivity(), NewsItemClicked {
             result.error?.let { Log.d(TAG, "Location Fetch Failed !! Country set to IN") }
 
             createFeedsLists(country)
+            Log.d(TAG, "Current Location: $country")
+
             mAdapter = NewsFeedAdapter(this, this)
             binding.recyclerView.layoutManager = LinearLayoutManager(this)
             binding.recyclerView.adapter = mAdapter
